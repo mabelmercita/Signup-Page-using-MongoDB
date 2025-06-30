@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Home</title>
+        <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    </head>
+    <body>
+        {%if username%}
+        <h1>Welcome, {{name}}!</h1>
+        <h2>View your profile details below:</h2>
+        <p>Username: {{username}}</p>
+        <p>Password: {{password}}</p>
+        <p>Age: {{age}}</p>
+        <p>Email ID: {{email}}</p>
+        <p>Date of Birth: {{ dob }}</p>
+        <p>Contact number: {{contact}}</p>
+        <br>
+        <a href="/update">Update your Profile</a><br>
+        <a href = '/logout'>Logout </a>
+        
+        {%else%}
+        <h1>Welcome!</h1>
+        <p><a href = '/register'>Register here</a>to be our user</p>
+        <p>Already a user?<a href = '\login'>Login</a>to continue</p>
+        
+        {%endif%}
+    </body>
+</html>

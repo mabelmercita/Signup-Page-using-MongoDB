@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Edit Profile</title>
+        <link rel="stylesheet" href="../static/styles.css">
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script src="../static/javascript/updatevalidation.js"></script>
+    </head>
+    <body>
+        <h2>Edit Profile ✏️</h2>
+        <form onsubmit="submitLogin(event);">
+
+            <input type="text" id="name" name="name" value="{{ session['name'] }}"><br><br>
+
+            <label for="age">Age:</label>
+            <input type="number" id="age" name="age" value="{{ session['age'] }}"><br><br>
+
+            <label for="dob">Date of Birth:</label>
+            <input type="date" id="dob" name="dob" value="{{ session['dob'] }}"><br><br>
+
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" value="{{ session['email'] }}"><br><br>
+
+            <label for="contact">Contact:</label>
+            <input type="text" id="contact" name="contact" value="{{ session['contact'] }}"><br><br>
+
+
+            <input type="submit" value="Save Changes">
+
+
+            <div id = "error" style = "color: red;"></div>
+            <br>
+            
+        </form>
+        <form action="/delete" method="POST" onsubmit="return confirm('Are you sure you want to delete your profile? This action cannot be undone.')">
+                <button type="submit">Delete Profile </button>
+        </form>
+    </body>
+</html>

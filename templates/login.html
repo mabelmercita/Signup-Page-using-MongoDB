@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Login</title>
+        <link rel="stylesheet" href="../static/styles.css">
+        <script src="../static/javascript/validation.js"></script>
+
+    </head>
+    <body>
+        
+        <form onsubmit="submitLogin(event);">
+            <label for = "username">Username: </label>
+            <input type = "text" id = "username" name = "username" required><br><br>
+            <label for = "password">Password: </label>
+            <input type = "password" id = "password" name = "password" required><br><br>
+            <input type = "submit" value = "Login">
+        </form>
+        <p>If not registered please, <a href = '/register'>register here</a> first</p>
+        <div id="error" style="color: red;"></div>
+    </body>
+</html>
