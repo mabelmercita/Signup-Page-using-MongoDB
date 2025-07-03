@@ -1,0 +1,33 @@
+body{
+    background-color: powderblue;
+    margin: auto;
+    text-align: center;
+}
+h2{
+    color: crimson;
+    text-align: center;
+}
+label{
+    display: block;
+    font-weight: bold;
+    margin: 8px;
+}
+input{
+    border: 1px solid white;
+    border-radius: 4px;
+    border-color: white;
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+input:invalid{
+    border-color: red;
+}
+
+button{
+    background-color: crimson;
+    color: powderblue;
+    padding: 10px;
+    border-radius: 10px;
+    
+}

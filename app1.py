@@ -1,6 +1,11 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, session
 import pymongo
 
+import redis
+
+cache = redis.StrictRedis(host='localhost', port=6379, db=0, decode_responses=True)
+
+
 app = Flask(__name__)
 app.secret_key = 'secret-key-112326'
 
@@ -25,7 +30,23 @@ def login():
             username = data['username']
             pwd = data['password']
 
-            user = records.find_one({"username": username})
+            cached_user = cache.hgetall(f"user:{username}")
+
+            if cached_user:
+                user = cached_user
+            
+            else:
+                user = records.find_one({"username": username})
+                if user:
+                    cache.hmset(f"user:{username}",{
+                        'username': user['username'],
+                        'password': user['password'],
+                        'name': user['name'],
+                        'age': user['age'],
+                        'email': user['email'],
+                        'dob': user['dob'],
+                        'contact': user['contact']
+                })
 
             if user and pwd == user['password']:
                 session['username'] = user['username']
@@ -103,6 +124,16 @@ def update():
                     "contact": contact
                 }})
 
+                cache.hmset(f"user:{username}", {
+                    'username': username,
+                    'name': name,
+                    'age': age,
+                    'dob': dob,
+                    'email': email,
+                    'contact': contact,
+                    'password': session['password']  # Reuse existing
+                })
+
                 session['name'] = name
                 session['age'] = age
                 session['dob'] = dob
@@ -127,6 +158,7 @@ def delete_profile():
     if result.deleted_count > 0:
 
         session.clear()
+        cache.delete(f"user:{username}")
         return redirect(url_for('home'))
     
     else:

@@ -1,0 +1,4 @@
+venv/
+*.txt
+desktop.ini
+__pycache__/
