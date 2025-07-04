@@ -1,31 +1,31 @@
 async function submitLogin(event) {
-
-    event.preventDefault(); 
+    event.preventDefault();
 
     const username = document.getElementById("username").value;
     const password = document.getElementById("password").value;
-
-    
     const errorMsg = document.getElementById("error");
+    errorMsg.innerText = "";
 
-    errorMsg.innerText = ""; 
+    $.ajax({
+        url: "/login",
+        method: "POST",
+        contentType: "application/json",
+        data: JSON.stringify({ username, password }),
 
-    const response = await fetch("/login", {
-    method: "POST",
-    headers: {
-        "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ username, password })
+        success: function (res) {
+            if (res.status === "success") {
+            
+                localStorage.setItem("token", res.access_token);
+
+                window.location.href = "/?token=" + res.access_token;
+            } else {
+                errorMsg.innerText = res.message;
+            }
+        },
+
+        error: function (xhr) {
+            const res = xhr.responseJSON;
+            errorMsg.innerText = res?.message || "Something went wrong!";
+        }
     });
-
-    const result = await response.json();
-    console.log(result);
-
-
-    if (result.status === "success") {
-        localStorage.setItem("token", result.access_token);
-        window.location.href = "/"; 
-    } else {
-        errorMsg.innerText = result.message;
-    }
 }

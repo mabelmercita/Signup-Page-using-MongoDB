@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for, s
 import pymongo
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt, get_jwt_identity
 import redis
+from flask_jwt_extended import decode_token
 
 cache = redis.StrictRedis(host='localhost', port=6379, db=0, decode_responses=True)
 blacklist = set()
@@ -24,9 +25,28 @@ db = client.get_database('usersdb')
 records = db.users
 
 @app.route('/')
-@jwt_required()
 def home():
-    username = get_jwt_identity()
+
+    token = None
+    auth_header = request.headers.get('Authorization')
+    if auth_header and auth_header.startswith("Bearer "):
+        token = auth_header.split(" ")[1]
+    else:
+        token = request.args.get("token")
+
+    if not token:
+        return redirect(url_for('login'))
+
+    try:
+        decoded_token = decode_token(token)
+        username = decoded_token['sub']
+        stored_token = cache.get(f"token:{username}")
+        if stored_token != token:
+            return jsonify({'status': 'error', 'message': 'Token is invalid or expired'}), 401
+    except Exception as e:
+        print("JWT Error:", e)
+        return redirect(url_for('login'))
+    
     user = cache.hgetall(f"user:{username}") 
 
     if not user:
@@ -40,6 +60,8 @@ def home():
                 'dob': db_user['dob'],
                 'contact': db_user['contact']
             }
+        else:
+            return redirect(url_for('login'))
 
     return render_template('home.html', **user)
 
@@ -72,6 +94,7 @@ def login():
 
             if user and pwd == user['password']:
                 access_token = create_access_token(identity=username)
+                cache.set(f"token:{username}", access_token)
                 return jsonify({'status': 'success', 'access_token': access_token})
             
             else:
@@ -108,12 +131,30 @@ def register():
 
     return render_template('register.html')
 
+
 @app.route('/update', methods=['GET', 'POST'])
-@jwt_required()
 def update():
-    username = get_jwt_identity()
 
     if request.method == 'POST':
+
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith("Bearer "):
+            return jsonify({'status': 'error', 'message': 'Missing token'}), 401
+
+        token = auth_header.split(" ")[1]
+
+        try:
+            decoded_token = decode_token(token)
+            username = decoded_token['sub']
+
+            stored_token = cache.get(f"token:{username}")
+            if stored_token != token:
+                return jsonify({'status': 'error', 'message': 'Token is invalid or expired'}), 401
+            
+        except Exception as e:
+            print("JWT Error:", e)
+            return jsonify({'status': 'error', 'message': 'Invalid token'}), 401
+        
         if request.is_json:
             data = request.get_json()
             name = data.get('name', '')
@@ -130,7 +171,9 @@ def update():
                 return jsonify({'status': 'error', 'message': 'Invalid email format'}), 400
             elif not contact.isdigit() or len(contact) != 10:
                 return jsonify({'status': 'error', 'message': 'Contact must be a 10-digit number'}), 400
-
+            
+            print("Update starts")
+            
             records.update_one({"username": username}, {"$set": {
                 "name": name,
                 "age": age,
@@ -149,28 +192,47 @@ def update():
                 'contact': contact
             })
 
+            print("Update Ends")
+
             return jsonify({'status': 'success', 'message': 'Profile updated successfully'})
 
         return jsonify({'status': 'error', 'message': 'Invalid request'}), 400
-
+    
+    
     return render_template('update.html')
 
 
-@app.route('/delete', methods=['POST'])
-@jwt_required()
-def delete_profile():
 
-    username = get_jwt_identity()
+@app.route('/delete', methods=['POST'])
+def delete_profile():
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return jsonify({'status': 'error', 'message': 'Missing token'}), 401
+
+    token = auth_header.split(" ")[1]
+
+    try:
+        decoded_token = decode_token(token)
+        username = decoded_token['sub']
+
+        stored_token = cache.get(f"token:{username}")
+        if stored_token != token:
+            return jsonify({'status': 'error', 'message': 'Token is invalid or expired'}), 401
+        
+    except Exception as e:
+        print("JWT Error:", e)
+        return jsonify({'status': 'error', 'message': 'Invalid token'}), 401
 
     result = records.delete_one({'username': username})
 
     if result.deleted_count > 0:
-
         cache.delete(f"user:{username}")
-        return redirect(url_for('home'))
-    
+        cache.delete(f"token:{username}")
+        return jsonify({'status': 'success', 'message': 'Profile deleted successfully'})
     else:
         return jsonify({'status': 'error', 'message': 'User not found'}), 404
+
+
 
 
 @app.route('/logout', methods=['POST'])
@@ -178,6 +240,7 @@ def delete_profile():
 def logout():
     jti = get_jwt()['jti']  
     blacklist.add(jti)
+    cache.delete(f"token:{get_jwt_identity()}")
     return jsonify({'status': 'success', 'message': 'Logged out successfully'})
 
 if __name__ == "__main__":

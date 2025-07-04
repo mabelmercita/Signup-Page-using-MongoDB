@@ -5,24 +5,27 @@
         <link rel="stylesheet" href="../static/styles.css">
         <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
         <script src="../static/javascript/updatevalidation.js"></script>
+        <script src="../static/javascript/delete.js"></script>
+
     </head>
     <body>
         <h2>Edit Profile ✏️</h2>
-        <form onsubmit="submitLogin(event);">
+        <form onsubmit="submitUpdate(event);">
 
-            <input type="text" id="name" name="name" value="{{ session['name'] }}"><br><br>
+            <label for="name">Name:</label>
+            <input type="text" id="name" name="name"><br><br>
 
             <label for="age">Age:</label>
-            <input type="number" id="age" name="age" value="{{ session['age'] }}"><br><br>
+            <input type="number" id="age" name="age"><br><br>
 
             <label for="dob">Date of Birth:</label>
-            <input type="date" id="dob" name="dob" value="{{ session['dob'] }}"><br><br>
+            <input type="date" id="dob" name="dob"><br><br>
 
             <label for="email">Email:</label>
-            <input type="email" id="email" name="email" value="{{ session['email'] }}"><br><br>
+            <input type="email" id="email" name="email"><br><br>
 
             <label for="contact">Contact:</label>
-            <input type="text" id="contact" name="contact" value="{{ session['contact'] }}"><br><br>
+            <input type="text" id="contact" name="contact"><br><br>
 
 
             <input type="submit" value="Save Changes">
@@ -32,8 +35,9 @@
             <br>
             
         </form>
-        <form action="/delete" method="POST" onsubmit="return confirm('Are you sure you want to delete your profile? This action cannot be undone.')">
-                <button type="submit">Delete Profile </button>
+        <form onsubmit="event.preventDefault(); deleteProfile();">
+            <button type="submit">Delete Profile</button>
         </form>
+
     </body>
 </html>

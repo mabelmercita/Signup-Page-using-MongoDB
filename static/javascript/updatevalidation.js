@@ -1,4 +1,4 @@
-async function submitLogin(event) {
+async function submitUpdate(event) {
 
     event.preventDefault(); 
 
@@ -21,7 +21,7 @@ async function submitLogin(event) {
         "Authorization": "Bearer " + localStorage.getItem("token") 
     },
     success: function(res){
-        window.location.href ='/';
+        window.location.href = "/login";
     },
     error: function(xhr){
         const res = xhr.responseJSON;

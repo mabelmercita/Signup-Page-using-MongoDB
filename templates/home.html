@@ -3,6 +3,8 @@
     <head>
         <title>Home</title>
         <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+        <script src="../static/javascript/logout.js"></script>
+
     </head>
     <body>
         {%if username%}
@@ -17,7 +19,7 @@
         <p>Contact number: {{contact}}</p>
         <br>
         <a href="/update">Update your Profile</a><br>
-        <a href = '/logout'>Logout </a>
+        <button onclick="logoutUser()">Logout</button>
         
         {%else%}
         <h1>Welcome!</h1>
