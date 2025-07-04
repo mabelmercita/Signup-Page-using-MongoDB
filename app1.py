@@ -1,26 +1,48 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, session
 import pymongo
-
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt, get_jwt_identity
 import redis
 
 cache = redis.StrictRedis(host='localhost', port=6379, db=0, decode_responses=True)
-
+blacklist = set()
 
 app = Flask(__name__)
 app.secret_key = 'secret-key-112326'
+
+app.config['JWT_SECRET_KEY'] = 'JWT-auth-token-256' 
+jwt = JWTManager(app)
+
+app.config['JWT_BLACKLIST_ENABLED'] = True
+app.config['JWT_BLACKLIST_TOKEN_CHECKS'] = ['access']
+
+@jwt.token_in_blocklist_loader
+def check_if_token_revoked(jwt_header, jwt_payload):
+    return jwt_payload['jti'] in blacklist
 
 client = pymongo.MongoClient("mongodb://localhost:27017/")
 db = client.get_database('usersdb')
 records = db.users
 
 @app.route('/')
+@jwt_required()
 def home():
-    if 'username' in session:
-        return render_template('home.html', username=session['username'], password=session['password'],
-                               name=session['name'], age=session['age'], email=session['email'],
-                               dob=session['dob'], contact=session['contact'])
-    else:
-        return render_template('home.html')
+    username = get_jwt_identity()
+    user = cache.hgetall(f"user:{username}") 
+
+    if not user:
+        db_user = records.find_one({"username": username})
+        if db_user:
+            user = {
+                'username': db_user['username'],
+                'name': db_user['name'],
+                'age': db_user['age'],
+                'email': db_user['email'],
+                'dob': db_user['dob'],
+                'contact': db_user['contact']
+            }
+
+    return render_template('home.html', **user)
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -49,14 +71,9 @@ def login():
                 })
 
             if user and pwd == user['password']:
-                session['username'] = user['username']
-                session['password'] = pwd
-                session['name'] = user['name']
-                session['age'] = user['age']
-                session['email'] = user['email']
-                session['dob'] = user['dob']
-                session['contact'] = user['contact']
-                return jsonify({'status': 'success', 'message': 'Login successful'})
+                access_token = create_access_token(identity=username)
+                return jsonify({'status': 'success', 'access_token': access_token})
+            
             else:
                 return jsonify({'status': 'error', 'message': 'Invalid username or password'}), 401
 
@@ -92,20 +109,18 @@ def register():
     return render_template('register.html')
 
 @app.route('/update', methods=['GET', 'POST'])
+@jwt_required()
 def update():
-    if 'username' not in session:
-        return redirect(url_for('login'))
-
-    username = session['username']
+    username = get_jwt_identity()
 
     if request.method == 'POST':
         if request.is_json:
             data = request.get_json()
-            name = data['name']
-            age = data['age']
-            dob = data['dob']
-            email = data['email']
-            contact = data['contact']
+            name = data.get('name', '')
+            age = data.get('age', '')
+            dob = data.get('dob', '')
+            email = data.get('email', '')
+            contact = data.get('contact', '')
 
             if name == "":
                 return jsonify({'status': 'error', 'message': 'Name cannot be empty'}), 400
@@ -115,49 +130,42 @@ def update():
                 return jsonify({'status': 'error', 'message': 'Invalid email format'}), 400
             elif not contact.isdigit() or len(contact) != 10:
                 return jsonify({'status': 'error', 'message': 'Contact must be a 10-digit number'}), 400
-            else:
-                records.update_one({"username": username}, {"$set": {
-                    "name": name,
-                    "age": age,
-                    "dob": dob,
-                    "email": email,
-                    "contact": contact
-                }})
 
-                cache.hmset(f"user:{username}", {
-                    'username': username,
-                    'name': name,
-                    'age': age,
-                    'dob': dob,
-                    'email': email,
-                    'contact': contact,
-                    'password': session['password']  # Reuse existing
-                })
+            records.update_one({"username": username}, {"$set": {
+                "name": name,
+                "age": age,
+                "dob": dob,
+                "email": email,
+                "contact": contact
+            }})
 
-                session['name'] = name
-                session['age'] = age
-                session['dob'] = dob
-                session['email'] = email
-                session['contact'] = contact
+           
+            cache.hmset(f"user:{username}", {
+                'username': username,
+                'name': name,
+                'age': age,
+                'dob': dob,
+                'email': email,
+                'contact': contact
+            })
 
-                return jsonify({'status': 'success', 'message': 'Profile updated successfully'})
+            return jsonify({'status': 'success', 'message': 'Profile updated successfully'})
 
         return jsonify({'status': 'error', 'message': 'Invalid request'}), 400
 
     return render_template('update.html')
 
-@app.route('/delete', methods=['POST'])
-def delete_profile():
-    if 'username' not in session:
-        return redirect(url_for('login'))
 
-    username = session['username']
+@app.route('/delete', methods=['POST'])
+@jwt_required()
+def delete_profile():
+
+    username = get_jwt_identity()
 
     result = records.delete_one({'username': username})
 
     if result.deleted_count > 0:
 
-        session.clear()
         cache.delete(f"user:{username}")
         return redirect(url_for('home'))
     
@@ -165,10 +173,12 @@ def delete_profile():
         return jsonify({'status': 'error', 'message': 'User not found'}), 404
 
 
-@app.route('/logout')
+@app.route('/logout', methods=['POST'])
+@jwt_required()
 def logout():
-    session.clear()
-    return redirect(url_for('home'))
+    jti = get_jwt()['jti']  
+    blacklist.add(jti)
+    return jsonify({'status': 'success', 'message': 'Logged out successfully'})
 
 if __name__ == "__main__":
     app.run(debug=True)

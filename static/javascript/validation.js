@@ -23,6 +23,7 @@ async function submitLogin(event) {
 
 
     if (result.status === "success") {
+        localStorage.setItem("token", result.access_token);
         window.location.href = "/"; 
     } else {
         errorMsg.innerText = result.message;

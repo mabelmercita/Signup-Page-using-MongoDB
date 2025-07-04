@@ -13,17 +13,20 @@ async function submitLogin(event) {
     errorMsg.innerText = ""; 
 
     $.ajax({
-        url: '/update',
-        method: 'POST',
-        contentType: "application/json",
-        data: JSON.stringify({name,age,dob,email,contact}),  
+    url: '/update',
+    method: 'POST',
+    contentType: "application/json",
+    data: JSON.stringify({name, age, dob, email, contact}),
+    headers: {
+        "Authorization": "Bearer " + localStorage.getItem("token") 
+    },
+    success: function(res){
+        window.location.href ='/';
+    },
+    error: function(xhr){
+        const res = xhr.responseJSON;
+        errorMsg.innerText = res?.message || "Something went wrong!";
+    }
+})
 
-        success: function(res){
-            window.location.href ='/';
-        },
-        error: function(xhr){
-            res = xhr.responseJSON
-            errorMsg.innerText = res?.message || "Something went wrong!";
-        }
-    })
 }
