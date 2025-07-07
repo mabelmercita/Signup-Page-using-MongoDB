@@ -3,14 +3,15 @@ import pymongo
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt, get_jwt_identity
 import redis
 from flask_jwt_extended import decode_token
+import os
 
-cache = redis.StrictRedis(host='localhost', port=6379, db=0, decode_responses=True)
+cache = redis.StrictRedis.from_url(os.environ("REDIS_URL"),decode_responses=True)
 blacklist = set()
 
 app = Flask(__name__)
 app.secret_key = 'secret-key-112326'
 
-app.config['JWT_SECRET_KEY'] = 'JWT-auth-token-256' 
+app.config['JWT_SECRET_KEY'] = os.environ.get("JWT_SECRET_KEY")
 jwt = JWTManager(app)
 
 app.config['JWT_BLACKLIST_ENABLED'] = True
@@ -20,7 +21,7 @@ app.config['JWT_BLACKLIST_TOKEN_CHECKS'] = ['access']
 def check_if_token_revoked(jwt_header, jwt_payload):
     return jwt_payload['jti'] in blacklist
 
-client = pymongo.MongoClient("mongodb://localhost:27017/")
+client = pymongo.MongoClient(os.environ.get("MONGO_URI"))
 db = client.get_database('usersdb')
 records = db.users
 
@@ -244,4 +245,4 @@ def logout():
     return jsonify({'status': 'success', 'message': 'Logged out successfully'})
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run()
