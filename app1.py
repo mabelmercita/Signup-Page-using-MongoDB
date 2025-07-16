@@ -5,7 +5,7 @@ import redis
 from flask_jwt_extended import decode_token
 import os
 
-cache = redis.StrictRedis.from_url(os.environ("REDIS_URL"),decode_responses=True)
+cache = redis.StrictRedis.from_url(os.environ.get("REDIS_URL"),decode_responses=True)
 blacklist = set()
 
 app = Flask(__name__)
