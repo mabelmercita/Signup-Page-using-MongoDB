@@ -2,12 +2,12 @@
 <html>
     <head>
         <title>Edit Profile</title>
-        <link rel="stylesheet" href="../static/styles.css">
+        <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
         <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-        <script src="../static/javascript/updatevalidation.js"></script>
-        <script src="../static/javascript/delete.js"></script>
-
+        <script src="{{ url_for('static', filename='javascript/updatevalidation.js') }}"></script>
+        <script src="{{ url_for('static', filename='javascript/delete.js') }}"></script>
     </head>
+
     <body>
         <h2>Edit Profile ✏️</h2>
         <form onsubmit="submitUpdate(event);">
